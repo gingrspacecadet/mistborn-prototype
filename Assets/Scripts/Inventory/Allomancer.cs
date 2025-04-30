@@ -39,8 +39,6 @@ public class Allomancer : MonoBehaviour
                 StopBurn();
                 Debug.Log($"Ran out of {activeMetal} while burning!");
             }
-
-            // TODO: apply metal’s effect here (push/pull, speed buff, etc.)
         }
     }
 
