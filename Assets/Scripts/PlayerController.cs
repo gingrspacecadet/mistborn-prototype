@@ -4,26 +4,26 @@ using UnityEngine;
 public class PlayerController : MonoBehaviour
 {
     [Header("References")]
-    public Transform cameraTarget;      // Where we read forward/right from
-    public Transform groundCheck;       // Empty at your feet
+    public Transform    cameraTarget;   // Where we read forward/right from
+    public Transform    groundCheck;    // Empty at your feet
+    public Allomancer   allomancer;     // Reference to your Allomancer component
 
     [Header("Movement")]
-    public float walkSpeed = 5f;
+    public float walkSpeed   = 5f;
     public float sprintSpeed = 10f;
-    public float jumpForce = 5f;
+    public float jumpForce   = 5f;
 
     [Header("Ground Check")]
-    public float groundDistance = 0.2f; // radius of our sphere check
-    public LayerMask groundMask;        // which layers count as “ground”
+    public float   groundDistance = 0.2f; // radius of our sphere check
+    public LayerMask groundMask;          // which layers count as “ground”
 
     private Rigidbody rb;
-    private float currentSpeed;
-    private bool isGrounded;
+    private float     currentSpeed;
+    private bool      isGrounded;
 
     void Start()
     {
         rb = GetComponent<Rigidbody>();
-        currentSpeed = walkSpeed;
     }
 
     void Update()
@@ -35,12 +35,20 @@ public class PlayerController : MonoBehaviour
             groundMask
         );
 
-        // 2) Speed toggle
+        // 2) Base speed (walk vs sprint)
         currentSpeed = Input.GetKey(KeyCode.LeftShift)
             ? sprintSpeed
             : walkSpeed;
 
-        // 3) Build desired velocity
+        // 3) Pewter boost?
+        if (allomancer != null 
+         && allomancer.isBurning 
+         && allomancer.activeMetal == MetalType.Pewter)
+        {
+            currentSpeed *= 2.0f;
+        }
+
+        // 4) Build desired velocity
         Vector3 forward = cameraTarget.forward;
         Vector3 right   = cameraTarget.right;
         forward.y = right.y = 0;
@@ -53,19 +61,24 @@ public class PlayerController : MonoBehaviour
         else if (Input.GetKey(KeyCode.D)) dir =  right;
         else if (Input.GetKey(KeyCode.A)) dir = -right;
 
-        Vector3 targetVel = dir * currentSpeed;
-        targetVel.y = rb.linearVelocity.y; // preserve vertical
+        Vector3 targetVel    = dir * currentSpeed;
+        targetVel.y          = rb.linearVelocity.y; // preserve vertical
+        rb.linearVelocity          = targetVel;
 
-        rb.linearVelocity = targetVel;
-
-        // 4) Jump
+        // 5) Jump (with optional Pewter boost)
         if (Input.GetKeyDown(KeyCode.Space) && isGrounded)
         {
-            rb.AddForce(Vector3.up * jumpForce, ForceMode.VelocityChange);
+            float effectiveJump = jumpForce;
+            if (allomancer != null 
+             && allomancer.isBurning 
+             && allomancer.activeMetal == MetalType.Pewter)
+            {
+                effectiveJump *= 1.5f;
+            }
+            rb.AddForce(Vector3.up * effectiveJump, ForceMode.VelocityChange);
         }
     }
 
-    // (Optional) visualize the ground-check sphere in the scene view
     void OnDrawGizmosSelected()
     {
         if (groundCheck != null)
