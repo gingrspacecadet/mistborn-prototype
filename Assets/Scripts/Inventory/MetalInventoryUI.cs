@@ -1,39 +1,49 @@
 using UnityEngine;
-using UnityEngine.UI;
-using System.Text;
 using TMPro;
+using System.Text;
+using System.Collections.Generic;
 
 public class MetalInventoryUI : MonoBehaviour
 {
     public MetalInventory inventory;
-    public TMP_Text displayText; // Assign in Inspector
+    public TMP_Text displayText;
+
+    public Color defaultColor = Color.white;
+    public Color burningColor = Color.cyan;
+
+    private Dictionary<MetalType, string> metalIcons = new Dictionary<MetalType, string>
+    {
+        { MetalType.Iron,  "iron" },
+        { MetalType.Steel, "steel" },
+        { MetalType.Tin,   "tin" },
+        { MetalType.Pewter,"pewter" },
+        { MetalType.Zinc,  "zinc" },
+        { MetalType.Brass, "brass" },
+        { MetalType.Copper,"copper" },
+        { MetalType.Bronze,"bronze" },
+    };
 
     void Update()
     {
         if (inventory == null || displayText == null) return;
 
-        StringBuilder sb = new StringBuilder("Metals:\n");
+        var allomancer = inventory.GetComponent<Allomancer>();
+        var sb = new StringBuilder();
+
         foreach (var vial in inventory.allVials)
         {
             float amount = inventory.GetUnits(vial.metal);
-            sb.AppendLine($"{vial.metal}: {amount:F1}");
-        }
+            bool isBurning = allomancer &&
+                allomancer.burningStatus.TryGetValue(vial.metal, out bool burning) && burning;
 
-        if (inventory.TryGetComponent<Allomancer>(out var allomancer))
-        {
-            bool hasBurning = false;
-            sb.AppendLine("\nBurning:");
-            foreach (var kvp in allomancer.burningStatus)
-            {
-                if (kvp.Value)
-                {
-                    sb.AppendLine($"- {kvp.Key}");
-                    hasBurning = true;
-                }
-            }
+            string icon = metalIcons.TryGetValue(vial.metal, out var name)
+                ? $"<sprite name={name}> " : "";
 
-            if (!hasBurning)
-                sb.AppendLine("- None");
+            string color = isBurning
+                ? ColorUtility.ToHtmlStringRGB(burningColor)
+                : ColorUtility.ToHtmlStringRGB(defaultColor);
+
+            sb.Append($"<color=#{color}>{icon}{vial.metal}: {amount:F1}</color>\u00A0\u00A0");
         }
 
         displayText.text = sb.ToString();
