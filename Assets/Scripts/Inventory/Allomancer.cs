@@ -1,5 +1,5 @@
-// Allomancer.cs
 using UnityEngine;
+using System.Collections.Generic;
 
 [RequireComponent(typeof(MetalInventory))]
 public class Allomancer : MonoBehaviour
@@ -7,67 +7,82 @@ public class Allomancer : MonoBehaviour
     private MetalInventory inventory;
 
     [Header("Burning")]
-    public MetalType activeMetal;
-    private MetalVialSO   activeDef;
-    public bool          isBurning;
+    public Dictionary<MetalType, bool> burningStatus = new();
+    private Dictionary<MetalType, MetalVialSO> metalDefs = new();
 
     void Start()
     {
         inventory = GetComponent<MetalInventory>();
+
+        // Initialize burning states
+        foreach (var vial in inventory.allVials)
+        {
+            burningStatus[vial.metal] = false;
+            metalDefs[vial.metal] = vial;
+        }
     }
 
     void Update()
     {
-        // Toggle burn via keys (example: Alpha1…Alpha8)
+        // Toggle burns (Alpha1 to Alpha8 for MetalType 0–7)
         for (int i = 0; i < 8; i++)
         {
             if (Input.GetKeyDown(KeyCode.Alpha1 + i))
             {
                 ToggleBurn((MetalType)i);
-                break;
             }
         }
 
-        // While burning, consume over time
-        if (isBurning && activeDef != null)
+        // Burn all active metals
+        foreach (var kvp in burningStatus)
         {
-            float toBurn = activeDef.burnRate * Time.deltaTime;
-            float got    = inventory.Burn(activeMetal, toBurn);
-            if (got < toBurn * 0.99f)
+            if (kvp.Value) // if burning
             {
-                // you ran out of that metal
-                StopBurn();
-                Debug.Log($"Ran out of {activeMetal} while burning!");
+                var metal = kvp.Key;
+                if (!metalDefs.TryGetValue(metal, out var def)) continue;
+
+                float toBurn = def.burnRate * Time.deltaTime;
+                float got = inventory.Burn(metal, toBurn);
+
+                if (got < toBurn * 0.99f)
+                {
+                    Debug.Log($"Ran out of {metal} while burning.");
+                    burningStatus[metal] = false;
+                }
             }
         }
     }
 
-    void ToggleBurn(MetalType m)
+    public void ToggleBurn(MetalType metal)
     {
-        if (isBurning && activeMetal == m)
+        if (!burningStatus.ContainsKey(metal))
         {
-            StopBurn();
+            Debug.LogWarning($"Metal {metal} not in inventory.");
+            return;
+        }
+
+        bool currentlyBurning = burningStatus[metal];
+
+        if (currentlyBurning)
+        {
+            burningStatus[metal] = false;
+            Debug.Log($"Stopped burning {metal}");
         }
         else
         {
-            StartBurn(m);
+            if (inventory.GetUnits(metal) <= 0f)
+            {
+                Debug.Log($"Can't burn {metal}, none left.");
+                return;
+            }
+
+            burningStatus[metal] = true;
+            Debug.Log($"Started burning {metal}");
         }
     }
 
-    void StartBurn(MetalType m)
+    public bool IsBurning(MetalType metal)
     {
-        var def = inventory.allVials.Find(v => v.metal == m);
-        if (def == null || inventory.GetUnits(m) <= 0f) return;
-
-        activeMetal = m;
-        activeDef   = def;
-        isBurning   = true;
-        Debug.Log($"Started burning {m}");
-    }
-
-    void StopBurn()
-    {
-        isBurning = false;
-        Debug.Log($"Stopped burning {activeMetal}");
+        return burningStatus.TryGetValue(metal, out bool value) && value;
     }
 }

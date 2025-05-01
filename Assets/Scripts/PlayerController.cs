@@ -41,9 +41,8 @@ public class PlayerController : MonoBehaviour
             : walkSpeed;
 
         // 3) Pewter boost?
-        if (allomancer != null 
-         && allomancer.isBurning 
-         && allomancer.activeMetal == MetalType.Pewter)
+        if (allomancer != null
+         && allomancer.IsBurning(MetalType.Pewter))
         {
             currentSpeed *= 2.0f;
         }
@@ -70,8 +69,7 @@ public class PlayerController : MonoBehaviour
         {
             float effectiveJump = jumpForce;
             if (allomancer != null 
-             && allomancer.isBurning 
-             && allomancer.activeMetal == MetalType.Pewter)
+             && allomancer.IsBurning(MetalType.Pewter))
             {
                 effectiveJump *= 1.5f;
             }
