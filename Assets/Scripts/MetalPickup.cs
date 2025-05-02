@@ -1,3 +1,4 @@
+using System.Reflection;
 using UnityEngine;
 
 public class MetalPickup : MonoBehaviour
@@ -11,7 +12,10 @@ public class MetalPickup : MonoBehaviour
         if (inv != null)
         {
             inv.AddVial(metalType);
-            AudioSource.PlayClipAtPoint(pickupSound, transform.position);
+            if (pickupSound != null)
+            {
+                AudioSource.PlayClipAtPoint(pickupSound, transform.position);
+            }
             Destroy(gameObject);
         }
     }
