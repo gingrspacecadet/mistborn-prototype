@@ -8,18 +8,18 @@ using System;
 public class PlayerController : MonoBehaviour
 {
     [Header("References")]
-    public Transform    cameraTarget;   // Where we read forward/right from
-    public Transform    groundCheck;    // Empty at your feet
-    public Allomancer   allomancer;     // Reference to your Allomancer component
-    public Material     lineMaterial;   // Assign a basic unlit transparent material in Inspector
+    public Transform cameraTarget;
+    public Transform groundCheck;
+    public Allomancer allomancer;
+    public Material lineMaterial;
 
     [Header("Movement")]
-    public float walkSpeed   = 5f;
+    public float walkSpeed = 5f;
     public float sprintSpeed = 10f;
-    public float jumpForce   = 5f;
+    public float jumpForce = 5f;
 
     [Header("Ground Check")]
-    public float   groundDistance = 0.2f;
+    public float groundDistance = 0.2f;
     public LayerMask groundMask;
 
     [Header("Iron/Steel Settings")]
@@ -42,19 +42,16 @@ public class PlayerController : MonoBehaviour
     [System.Obsolete]
     void Update()
     {
-        // 1) Ground-check
         isGrounded = Physics.CheckSphere(
             groundCheck.position,
             groundDistance,
             groundMask
         );
 
-        // 2) Base speed (walk vs sprint)
         currentSpeed = Input.GetKey(KeyCode.LeftShift)
             ? sprintSpeed
             : walkSpeed;
 
-        // 3) Pewter boost?
         if (allomancer != null
             && allomancer.burningStatus.TryGetValue(MetalType.Pewter, out bool isPewterOn)
             && isPewterOn)
@@ -62,14 +59,12 @@ public class PlayerController : MonoBehaviour
             currentSpeed *= 1.2f;
         }
 
-        // 4) Build direction vectors
         Vector3 forward = cameraTarget.forward;
         Vector3 right = cameraTarget.right;
         forward.y = right.y = 0;
         forward.Normalize();
         right.Normalize();
 
-        // 5) Movement input
         Vector3 moveInput = Vector3.zero;
         if (isGrounded)
         {
@@ -88,17 +83,14 @@ public class PlayerController : MonoBehaviour
         }
         rb.linearVelocity = newVelocity;
 
-        // 6) Jump
         if (Input.GetKeyDown(KeyCode.Space) && isGrounded)
         {
             rb.AddForce(Vector3.up * jumpForce, ForceMode.VelocityChange);
         }
 
-        // 7) Iron/Steel burning logic
         bool burningIron = allomancer?.IsBurning(MetalType.Iron) ?? false;
         bool burningSteel = allomancer?.IsBurning(MetalType.Steel) ?? false;
 
-        // Clear old lines
         foreach (var line in activeLines)
         {
             if (line != null)
@@ -116,21 +108,19 @@ public class PlayerController : MonoBehaviour
                 {
                     nearbyMetals.Add(hit.attachedRigidbody);
 
-                    // Calculate distance and alpha
                     float dist = Vector3.Distance(rb.worldCenterOfMass, hit.attachedRigidbody.worldCenterOfMass);
-                    float alpha = Mathf.Clamp01(1f - (dist / metalDetectRadius)); // Closer = more opaque
+                    float alpha = Mathf.Clamp01(1f - (dist / metalDetectRadius));
 
-                    // Create a new LineRenderer GameObject
                     GameObject lineObj = new GameObject("MetalLine");
                     LineRenderer lr = lineObj.AddComponent<LineRenderer>();
-                    lr.material = new Material(Shader.Find("Sprites/Default")); // Ensure material supports transparency
+                    lr.material = new Material(Shader.Find("Sprites/Default"));
                     lr.startWidth = lr.endWidth = 0.05f;
                     lr.positionCount = 2;
                     lr.useWorldSpace = true;
                     lr.SetPosition(0, rb.worldCenterOfMass);
                     lr.SetPosition(1, hit.attachedRigidbody.worldCenterOfMass);
 
-                    Color lineColor = new Color(0f, 0.5f, 1f, alpha); // Blue-ish with variable alpha
+                    Color lineColor = new Color(0f, 0.5f, 1f, alpha);
                     lr.startColor = lr.endColor = lineColor;
 
                     activeLines.Add(lr);
@@ -144,13 +134,12 @@ public class PlayerController : MonoBehaviour
                 {
                     Vector3 dir = (closest.worldCenterOfMass - transform.position).normalized;
 
-                    // Calculate clamped force based on player's weight
                     float playerWeight = rb.mass * Physics.gravity.magnitude;
-                    float maxForce = playerWeight * 0.95f; // 95% of weight
+                    float maxForce = playerWeight * 0.95f;
                     float clampedForce = Mathf.Min(pushPullForce, maxForce);
 
                     if (burningIron)
-                        closest.AddForce(-dir * clampedForce, ForceMode.Impulse); // Pull
+                        closest.AddForce(-dir * clampedForce, ForceMode.Impulse);
                 }
             } else if (Input.GetMouseButtonDown(1) && nearbyMetals.Count > 0)
             {
@@ -159,13 +148,12 @@ public class PlayerController : MonoBehaviour
                 {
                     Vector3 dir = (closest.worldCenterOfMass - transform.position).normalized;
 
-                    // Calculate clamped force based on player's weight
                     float playerWeight = rb.mass * Physics.gravity.magnitude;
-                    float maxForce = playerWeight * 0.95f; // 95% of weight
+                    float maxForce = playerWeight * 0.95f;
                     float clampedForce = Mathf.Min(pushPullForce, maxForce);
 
                     if (burningSteel)
-                        closest.AddForce(dir * clampedForce, ForceMode.Impulse); // Push
+                        closest.AddForce(dir * clampedForce, ForceMode.Impulse);
                 }
             }
         }

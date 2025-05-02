@@ -3,8 +3,8 @@ using UnityEngine;
 
 public class MetalPickup : MonoBehaviour
 {
-    public MetalType metalType;       // Set in inspector (e.g., Iron)
-    public AudioClip pickupSound;     // optional
+    public MetalType metalType;
+    public AudioClip pickupSound;
 
     void OnTriggerEnter(Collider other)
     {

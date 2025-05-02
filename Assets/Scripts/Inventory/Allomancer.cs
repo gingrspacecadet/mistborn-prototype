@@ -4,17 +4,16 @@ using System.Collections.Generic;
 [RequireComponent(typeof(MetalInventory))]
 public class Allomancer : MonoBehaviour
 {
-    private MetalInventory inventory;
-
     [Header("Burning")]
     public Dictionary<MetalType, bool> burningStatus = new();
     private Dictionary<MetalType, MetalVialSO> metalDefs = new();
+
+    private MetalInventory inventory;
 
     void Start()
     {
         inventory = GetComponent<MetalInventory>();
 
-        // Initialize burning states
         foreach (var vial in inventory.allVials)
         {
             burningStatus[vial.metal] = false;
@@ -24,7 +23,6 @@ public class Allomancer : MonoBehaviour
 
     void Update()
     {
-        // Toggle burns (Alpha1 to Alpha8 for MetalType 0–7)
         for (int i = 0; i < 8; i++)
         {
             if (Input.GetKeyDown(KeyCode.Alpha1 + i))
@@ -33,10 +31,9 @@ public class Allomancer : MonoBehaviour
             }
         }
 
-        // Burn all active metals
         foreach (var kvp in burningStatus)
         {
-            if (kvp.Value) // if burning
+            if (kvp.Value)
             {
                 var metal = kvp.Key;
                 if (!metalDefs.TryGetValue(metal, out var def)) continue;
