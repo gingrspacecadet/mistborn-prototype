@@ -39,6 +39,51 @@ public class PlayerController : MonoBehaviour
         rb = GetComponent<Rigidbody>();
     }
 
+    void FixedUpdate()
+    {
+        ApplyPushPullForce();
+    }
+
+    void ApplyPushPullForce()
+    {
+        bool burningIron = allomancer?.IsBurning(MetalType.Iron) ?? false;
+        bool burningSteel = allomancer?.IsBurning(MetalType.Steel) ?? false;
+
+        if ((burningIron || burningSteel) && nearbyMetals.Count > 0)
+        {
+            Rigidbody closest = GetClosestMetal(nearbyMetals);
+            if (closest != null)
+            {
+                Vector3 dir = (closest.worldCenterOfMass - transform.position).normalized;
+                float distance = Vector3.Distance(transform.position, closest.worldCenterOfMass);
+
+                float playerWeight = rb.mass * Physics.gravity.magnitude;
+                float objectWeight = closest.mass * Physics.gravity.magnitude;
+
+                if (Input.GetMouseButton(0) && burningIron)
+                {
+                    float allomanticForce = pushPullForce * Mathf.Exp(-distance / 16f);
+                    float totalForce = allomanticForce * rb.mass; // Use player's mass for pull
+
+                    if (objectWeight > playerWeight)
+                        rb.AddForce(dir * totalForce, ForceMode.Force); // Pull player toward the object
+                    else
+                        closest.AddForce(-dir * allomanticForce * closest.mass, ForceMode.Force); // Pull object toward the player
+                }
+                else if (Input.GetMouseButton(1) && burningSteel)
+                {
+                    float allomanticForce = pushPullForce * Mathf.Exp(-distance / 16f);
+                    float totalForce = allomanticForce * rb.mass; // Use player's mass for push
+
+                    if (objectWeight > playerWeight)
+                        rb.AddForce(-dir * totalForce, ForceMode.Force); // Push player away from the object
+                    else
+                        closest.AddForce(dir * allomanticForce * closest.mass, ForceMode.Force); // Push object away from the player
+                }
+            }
+        }
+    }
+
     [System.Obsolete]
     void Update()
     {
@@ -124,36 +169,6 @@ public class PlayerController : MonoBehaviour
                     lr.startColor = lr.endColor = lineColor;
 
                     activeLines.Add(lr);
-                }
-            }
-
-            if (Input.GetMouseButtonDown(0) && nearbyMetals.Count > 0)
-            {
-                Rigidbody closest = GetClosestMetal(nearbyMetals);
-                if (closest != null)
-                {
-                    Vector3 dir = (closest.worldCenterOfMass - transform.position).normalized;
-
-                    float playerWeight = rb.mass * Physics.gravity.magnitude;
-                    float maxForce = playerWeight * 0.95f;
-                    float clampedForce = Mathf.Min(pushPullForce, maxForce);
-
-                    if (burningIron)
-                        closest.AddForce(-dir * clampedForce, ForceMode.Impulse);
-                }
-            } else if (Input.GetMouseButtonDown(1) && nearbyMetals.Count > 0)
-            {
-                Rigidbody closest = GetClosestMetal(nearbyMetals);
-                if (closest != null)
-                {
-                    Vector3 dir = (closest.worldCenterOfMass - transform.position).normalized;
-
-                    float playerWeight = rb.mass * Physics.gravity.magnitude;
-                    float maxForce = playerWeight * 0.95f;
-                    float clampedForce = Mathf.Min(pushPullForce, maxForce);
-
-                    if (burningSteel)
-                        closest.AddForce(dir * clampedForce, ForceMode.Impulse);
                 }
             }
         }
